@@ -19,7 +19,7 @@ El dataset original presentaba los siguientes problemas de calidad:
 - **100 filas duplicadas** (mismo `id_cliente` repetido).
 - **Valores faltantes**: 60 en `genero`, 505 en `gasto_q`, 157 en `ciudad`.
 - **`genero`** con variantes inconsistentes (`' m '`, `'M'`, `'f'`, `'F'`, espacios en blanco).
-- **`ciudad`** y **`categoria`** con mezcla de mayúsculas/minúsculas y espacios extra (ej. `'Antigua'`, `'  ANTIGUA'`, `'antigua '`).
+- **`ciudad`** y **`categoria`** con mezcla de mayúsculas/minúsculas y espacios extra.
 - **`fecha_registro`** en dos formatos distintos (`AAAA-MM-DD` y `DD/MM/AAAA`).
 - **`gasto_q`** guardado como texto, con separador decimal mixto (punto y coma).
 - **`nombre`** con espacios extra al inicio, final o dobles espacios internos.
@@ -37,46 +37,46 @@ Se aplicaron los siguientes pasos:
 
 ### Estado original del dataset (exploración inicial)
 
-![alt text](image.png)
+![alt text](img/image.png)
 
-![alt text](image-1.png)
+![alt text](img/image-1.png)
 
 ### Eliminación de duplicados
 
-![alt text](image-2.png)
+![alt text](img/image-2.png)
 
 ### Tratamiento de valores vacíos
 
-![alt text](image-3.png)
+![alt text](img/image-3.png)
 
 ### Estandarización de valores y formatos
 
-![alt text](image-4.png)
+![alt text](img/image-4.png)
 
-![alt text](image-5.png)
+![alt text](img/image-5.png)
 
 
 ### Tabla pivote - ANTES de la limpieza
 
-![alt text](image-6.png)
+![alt text](img/image-6.png)
 
-![alt text](image-7.png)
+![alt text](img/image-7.png)
 
 ### Tabla pivote - DESPUÉS de la limpieza
 
-![alt text](image-12.png)
+![alt text](img/image-12.png)
 
 ### Visualización 1 - Distribución del gasto
 
-![alt text](image-8.png)
+![alt text](img/image-8.png)
 
 ### Visualización 2 - Gasto por categoría
 
-![alt text](image-10.png)
+![alt text](img/image-10.png)
 
 ### Visualización 3 - Clientes por ciudad
 
-![alt text](image-11.png)
+![alt text](img/image-11.png)
 
 ## Interpretación de los resultados
 
