@@ -1,87 +1,105 @@
-# Práctica 1: ETL con Python y SQL Server
+# Práctica 1 - Seminario de Sistemas 2: ETL con Python
 
-**Curso:** Seminario de Sistemas 2 - Universidad San Carlos de Guatemala
-**Repositorio:** SS22S2026_#19
-**Carpeta:** Practica1
+## Descripción
+Este proyecto implementa un proceso ETL (Extracción, Transformación y Carga) utilizando Python y Pandas, que lee un archivo CSV crudo con registros de vuelos, limpia y transforma los datos, y finalmente los carga en un modelo multidimensional en Microsoft SQL Server.
 
-## Descripción del Proyecto
+## Estructura del Proyecto
 
-Este proyecto implementa un proceso ETL (Extracción, Transformación y Carga) desarrollado en Python para integrar y estandarizar datos provenientes de múltiples fuentes heterogéneas (registros de vuelos). Los datos procesados se cargan en un modelo multidimensional diseñado en Microsoft SQL Server, el cual permite la ejecución de consultas analíticas para facilitar la toma de decisiones empresariales.
+```text
+PRACTICA1/
+├── docs/
+│   ├── 798_Practica_1_2S2026.pdf      # Instrucciones de la práctica
+│   └── dataset_vuelos_crudo.csv       # Archivo de datos fuente
+├── docker-compose.yml                 # Configuración del contenedor SQL Server
+├── script_db.sql                      # DDL del Modelo Multidimensional
+├── etl.py                             # Script de Extracción, Transformación y Carga
+├── consultas.sql                      # Consultas analíticas y de validación
+└── Instrucciones_Practica1.md         # Documentación de requerimientos
+```
 
-## Tecnologías y Herramientas Utilizadas
+## Requisitos y Tecnologías
+- **Python 3.10+** (Librerías: `pandas`, `sqlalchemy`, `pyodbc`)
+- **Docker** (para ejecutar la instancia de Microsoft SQL Server 2022)
+- **DBeaver / SSMS** (para administrar la base de datos)
 
-- **Lenguaje de Programación:** Python 3.10+
-- **Motor de Base de Datos:** Microsoft SQL Server
-- **Librerías principales:** `pandas`, `pyodbc`, `sqlalchemy`, `datetime`
+## Instrucciones de Ejecución
 
-## Diseño del Modelo Multidimensional
-
-> *Nota para el estudiante: Inserta aquí tu diagrama relacional/dimensional y completa la explicación.*
-
-El modelo de datos implementado sigue un enfoque [dimensional (estrella/copo de nieve) o relacional] para optimizar las consultas.
-
-**Entidades principales:**
-
-- **Tabla de Hechos:** `[Nombre de tu tabla de hechos]`
-- **Tablas de Dimensiones:** `[Lista de tus dimensiones, ej: DimTiempo, DimUbicacion, DimPasajero]`
-
-![Diagrama del Modelo de Datos](ruta/a/tu/imagen_diagrama.png)
-
-## Descripción del Proceso ETL
-
-1. **Extracción (Extract):**
-   Se conectan y leen los datos desde las diferentes fuentes de origen utilizando `pandas`.
-2. **Transformación (Transform):**
-   Se realizan procesos de limpieza de datos, tales como:
-   - Manejo de valores nulos o inconsistentes.
-   - Homologación de formatos de fechas y texto.
-   - Estandarización de registros dispersos.
-3. **Carga (Load):**
-   Se utiliza `pyodbc` y/o `sqlalchemy` para establecer la conexión a SQL Server e insertar la data procesada dentro del modelo multidimensional creado previamente.
-
-## Pasos de Ejecución
-
-Sigue estos pasos para reproducir el funcionamiento del proyecto de forma local:
-
-1. **Clonar el repositorio:**
-
+1. **Levantar el servidor SQL Server:**
+   Abre una terminal en esta carpeta y ejecuta:
    ```bash
-   git clone https://github.com/tu-usuario/SS22S2026_#grupo.git
-   cd SS22S2026_#grupo/Practica1
+   docker-compose up -d
    ```
-2. **Preparar la Base de Datos:**
-
-   - Abre SQL Server Management Studio (SSMS) u otro cliente.
-   - Ejecuta el script de creación de base de datos (`script_db.sql`) para generar las tablas y relaciones.
-3. **Configurar el entorno de Python:**
-
-   - Se recomienda usar un entorno virtual.
-
+2. **Crear la Base de Datos y las Tablas:**
+   Conéctate a la base de datos (`localhost:1433`, usuario `sa`, contraseña `Practica1_SS2_2026!`). Crea la base de datos `DW_Vuelos` y ejecuta el script `script_db.sql` para generar las dimensiones y la tabla de hechos.
+3. **Ejecutar el ETL:**
+   Ejecuta el script en Python para cargar los datos:
    ```bash
-   pip install pandas pyodbc sqlalchemy
+   pip install pandas sqlalchemy pyodbc
+   python etl.py
    ```
+4. **Validación:**
+   Abre y ejecuta `consultas.sql` en tu cliente SQL para verificar los indicadores clave y resultados de la carga.
 
-   - Actualiza la cadena de conexión (`connection string`) dentro del código Python con el nombre de tu servidor local de SQL Server.
-4. **Ejecutar el proceso ETL:**
+## Modelo Multidimensional (Diagrama Entidad-Relación)
 
-   ```bash
-   python script_etl.py
-   ```
-5. **Validar Resultados:**
+A continuación se muestra el esquema en estrella implementado para este Data Warehouse:
 
-   - Ejecuta el archivo `consultas_analiticas.sql` en SQL Server para observar los resultados de la carga y los indicadores generados.
+```mermaid
+erDiagram
+    Fact_Vuelos {
+        INT id_registro PK
+        VARCHAR codigo_aerolinea FK
+        VARCHAR id_pasajero FK
+        INT id_detalle FK
+        INT id_transaccion FK
+        DATETIME fecha_reserva
+        DATETIME fecha_salida
+        DATETIME fecha_llegada
+        VARCHAR aeropuerto_origen
+        VARCHAR aeropuerto_destino
+        INT duracion_min
+        INT retraso_min
+        DECIMAL precio_usd
+        INT equipaje_total
+        INT equipaje_documentado
+    }
+    
+    Dim_Aerolinea {
+        VARCHAR codigo_aerolinea PK
+        VARCHAR nombre_aerolinea
+    }
+    
+    Dim_Pasajero {
+        VARCHAR id_pasajero PK
+        VARCHAR genero
+        INT edad
+        VARCHAR nacionalidad
+    }
+    
+    Dim_DetalleVuelo {
+        INT id_detalle PK
+        VARCHAR numero_vuelo
+        VARCHAR tipo_avion
+        VARCHAR clase_cabina
+        VARCHAR asiento
+        VARCHAR estado_vuelo
+    }
+    
+    Dim_Transaccion {
+        INT id_transaccion PK
+        VARCHAR canal_venta
+        VARCHAR metodo_pago
+        VARCHAR moneda_original
+        DECIMAL precio_original
+    }
 
-## Resultados e Indicadores
+    Fact_Vuelos }o--|| Dim_Aerolinea : "codigo_aerolinea"
+    Fact_Vuelos }o--|| Dim_Pasajero : "id_pasajero"
+    Fact_Vuelos }o--|| Dim_DetalleVuelo : "id_detalle"
+    Fact_Vuelos }o--|| Dim_Transaccion : "id_transaccion"
+```
 
-A través de las consultas analíticas se ha logrado comprobar la integridad de los datos cargados y extraer información valiosa, como por ejemplo:
-
-- **Total de vuelos registrados:** `[Resultado]`
-- **Destinos más frecuentes (Top 5):** `[Resultado]`
-- **Distribución por género:** `[Resultado]`
-
-*(Opcional: Si hiciste visualizaciones con Power BI o Matplotlib, puedes incluir capturas de pantalla aquí)*
-
-## Integrantes del Grupo
-
-- Estiben Yair Lopez Leveron
-- Johan Moises Cardona Rosales
+## Resultados de la Validación
+- Todos los nulos y errores de formato (como fechas inconsistentes y comas en lugar de puntos decimales) fueron corregidos mediante `pandas`.
+- Se mantiene la integridad referencial.
+- Las consultas analíticas permiten obtener rápidamente información como destinos frecuentes y desempeño financiero.
