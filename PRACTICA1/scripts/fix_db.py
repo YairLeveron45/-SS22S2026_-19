@@ -13,10 +13,14 @@ params = urllib.parse.quote_plus(
     f"UID={username};"
     f"PWD={password}"
 )
+import os
 engine = sqlalchemy.create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
 
-# Leer el archivo SQL
-with open('script_db.sql', 'r', encoding='utf-8') as file:
+# Leer el archivo SQL usando ruta absoluta basada en la ubicación del script actual
+base_dir = os.path.dirname(os.path.abspath(__file__))
+sql_path = os.path.join(base_dir, '..', 'db', 'script_db.sql')
+
+with open(sql_path, 'r', encoding='utf-8') as file:
     sql_script = file.read()
 
 # Dividir por 'GO' ya que sqlalchemy no soporta GO nativamente

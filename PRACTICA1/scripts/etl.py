@@ -4,6 +4,10 @@ import urllib
 
 # ==========================================
 # 1. Parámetros de Conexión
+# ------------------------------------------
+# Configura las credenciales y el string de conexión (ODBC) para 
+# enlazarse a la base de datos SQL Server 'DW_Vuelos'. 
+# Utiliza SQLAlchemy para permitir cargas masivas rápidas (fast_executemany).
 # ==========================================
 server = 'localhost,1433'
 database = 'DW_Vuelos'
@@ -24,12 +28,27 @@ engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}", fast_executema
 
 # ==========================================
 # 2. Extracción (Extract)
+# ------------------------------------------
+# Lee el archivo CSV origen ('dataset_vuelos_crudo.csv') utilizando pandas 
+# y lo carga en la memoria RAM como un DataFrame (df_crudo) para 
+# su posterior manipulación.
 # ==========================================
 print("\n1. Extrayendo datos...")
-df_crudo = pd.read_csv('docs/dataset_vuelos_crudo.csv')
+import os
+base_dir = os.path.dirname(os.path.abspath(__file__))
+csv_path = os.path.join(base_dir, '..', 'docs', 'dataset_vuelos_crudo.csv')
+df_crudo = pd.read_csv(csv_path)
 
 # ==========================================
 # 3. Transformación (Transform)
+# ------------------------------------------
+# Es la fase más extensa (Data Cleansing). Aquí se realizan varias tareas:
+# - Limpieza de nulos (NaN): Sustituye campos vacíos por 'DESCONOCIDO', 'ND' o 0.
+# - Homologación de formatos: Pasa géneros a mayúsculas y renombra valores.
+# - Tipos de dato: Convierte cadenas de texto a formato DateTime o Float.
+# - Separación dimensional: Divide el dataset general (df_crudo) en las distintas
+#   dimensiones del esquema estrella, eliminando duplicados y renombrando 
+#   las columnas para que coincidan con la base de datos.
 # ==========================================
 print("2. Transformando datos...")
 
@@ -99,6 +118,12 @@ dim_transaccion = dim_transaccion.rename(columns={
 
 # ==========================================
 # 4. Carga (Load)
+# ------------------------------------------
+# Esta fase inserta los DataFrames limpios en las tablas de SQL Server.
+# Primero se cargan las dimensiones para que SQL Server genere sus llaves 
+# primarias autoincrementables (IDENTITY). 
+# Luego, se hace un 'merge' (cruce) con el dataset original para recuperar 
+# esos IDs generados y finalmente se inserta todo en la tabla de hechos Fact_Vuelos.
 # ==========================================
 print("\n3. Cargando dimensiones simples (Dim_Aerolinea, Dim_Pasajero)...")
 dim_aerolinea.to_sql('Dim_Aerolinea', con=engine, if_exists='append', index=False)
@@ -139,6 +164,10 @@ fact_final = fact_vuelos[[
     'duration_min', 'delay_min', 'ticket_price_usd_est', 'bags_total', 'bags_checked'
 ]].copy()
 
+# Renombrar columnas: 
+# Traduce los nombres de las columnas que venían en inglés en el CSV crudo 
+# para que coincidan exactamente con los nombres en español que tiene 
+# la tabla Fact_Vuelos en la base de datos SQL Server.
 fact_final = fact_final.rename(columns={
     'record_id': 'id_registro',
     'airline_code': 'codigo_aerolinea',
