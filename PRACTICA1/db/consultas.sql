@@ -14,7 +14,7 @@ SELECT COUNT(*) AS Total_Registros_Fact_Vuelos FROM Fact_Vuelos;
 SELECT COUNT(*) AS Total_Aerolineas FROM Dim_Aerolinea;
 SELECT COUNT(*) AS Total_Pasajeros FROM Dim_Pasajero;
 SELECT COUNT(*) AS Total_DetallesVuelo FROM Dim_DetalleVuelo;
-SELECT COUNT(*) AS Total_Transacciones FROM Dim_Transaccion;
+SELECT COUNT(*) AS Total_Transacciones FR   OM Dim_Transaccion;
 
 -- ==========================================
 -- 2. Consultas Analíticas (Indicadores de Negocio)

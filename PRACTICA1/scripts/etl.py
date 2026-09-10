@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import urllib
 
 # ==========================================
@@ -16,7 +16,7 @@ password = 'Practica1_SS2_2026!'
 
 # Crear la cadena de conexión SQLAlchemy
 print("Conectando a la base de datos...")
-# Usamos ODBC Driver 17 for SQL Server. Puede que necesites instalarlo si falla.
+# Usamos ODBC Driver 17 for SQL Server.
 params = urllib.parse.quote_plus(
     f"DRIVER={{ODBC Driver 17 for SQL Server}};"
     f"SERVER={server};"
@@ -37,6 +37,9 @@ print("\n1. Extrayendo datos...")
 import os
 base_dir = os.path.dirname(os.path.abspath(__file__))
 csv_path = os.path.join(base_dir, '..', 'docs', 'dataset_vuelos_crudo.csv')
+
+# EXTRAER: Aquí ocurre la "E" de ETL. Se lee el archivo CSV físico 
+# y pandas lo convierte en una tabla estructurada en memoria (un DataFrame).
 df_crudo = pd.read_csv(csv_path)
 
 # ==========================================
@@ -63,6 +66,8 @@ df_crudo['passenger_age'] = df_crudo['passenger_age'].fillna(0)
 df_crudo['passenger_nationality'] = df_crudo['passenger_nationality'].fillna('ND')
 
 # Homologar géneros
+# LIMPIEZA/HOMOLOGACIÓN: Estandariza los textos. Primero pasa todo a mayúsculas
+# y luego cambia códigos cortos por la palabra completa ('M' a 'Masculino')
 df_crudo['passenger_gender'] = df_crudo['passenger_gender'].str.upper()
 mapeo_generos = {'M': 'Masculino', 'F': 'Femenino', 'X': 'NoBinario'}
 df_crudo['passenger_gender'] = df_crudo['passenger_gender'].replace(mapeo_generos)
@@ -78,6 +83,8 @@ df_crudo['ticket_price'] = df_crudo['ticket_price'].astype(str).str.replace(',',
 # PREPARACIÓN DE LAS DIMENSIONES
 
 # Dim_Aerolinea
+# SEPARACIÓN DIMENSIONAL: Crea el catálogo de aerolíneas tomando solo dos columnas.
+# El drop_duplicates asegura que cada aerolínea aparezca una sola vez, creando un catálogo limpio.
 dim_aerolinea = df_crudo[['airline_code', 'airline_name']].dropna(subset=['airline_code'])
 dim_aerolinea['airline_name'] = dim_aerolinea['airline_name'].str.upper() # Estandarizar a mayúsculas
 dim_aerolinea = dim_aerolinea.drop_duplicates(subset=['airline_code'])
@@ -120,27 +127,43 @@ dim_transaccion = dim_transaccion.rename(columns={
 # 4. Carga (Load)
 # ------------------------------------------
 # Esta fase inserta los DataFrames limpios en las tablas de SQL Server.
-# Primero se cargan las dimensiones para que SQL Server genere sus llaves 
+# Primero se limpia la base de datos eliminando registros anteriores para sobreescribir.
+# Luego, se cargan las dimensiones para que SQL Server genere sus llaves 
 # primarias autoincrementables (IDENTITY). 
-# Luego, se hace un 'merge' (cruce) con el dataset original para recuperar 
+# Después, se hace un 'merge' (cruce) con el dataset original para recuperar 
 # esos IDs generados y finalmente se inserta todo en la tabla de hechos Fact_Vuelos.
 # ==========================================
-print("\n3. Cargando dimensiones simples (Dim_Aerolinea, Dim_Pasajero)...")
+print("\n3. Limpiando datos existentes (Sobreescribiendo base de datos)...")
+try:
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM Fact_Vuelos"))
+        conn.execute(text("DELETE FROM Dim_Transaccion"))
+        conn.execute(text("DELETE FROM Dim_DetalleVuelo"))
+        conn.execute(text("DELETE FROM Dim_Pasajero"))
+        conn.execute(text("DELETE FROM Dim_Aerolinea"))
+    print("   -> Datos anteriores eliminados con éxito.")
+except Exception as e:
+    print(f"   -> Advertencia al limpiar datos: {e}")
+
+print("\n4. Cargando dimensiones simples (Dim_Aerolinea, Dim_Pasajero)...")
 dim_aerolinea.to_sql('Dim_Aerolinea', con=engine, if_exists='append', index=False)
 dim_pasajero.to_sql('Dim_Pasajero', con=engine, if_exists='append', index=False)
 
-print("4. Cargando e insertando Dim_DetalleVuelo (Generando IDs Identity)...")
+print("5. Cargando e insertando Dim_DetalleVuelo (Generando IDs Identity)...")
 dim_detalle.to_sql('Dim_DetalleVuelo', con=engine, if_exists='append', index=False)
-# Recuperamos la tabla desde la BD ya con los id_detalle que asignó SQL Server automáticamente
+# ¡MUY IMPORTANTE!: Al insertar, SQL Server le asignó a cada registro un ID autonumérico.
+# Esta línea vuelve a descargar la tabla para obtener esos IDs (id_detalle) que Python no conocía.
 dim_detalle_db = pd.read_sql("SELECT * FROM Dim_DetalleVuelo", con=engine)
 
-print("5. Cargando e insertando Dim_Transaccion (Generando IDs Identity)...")
+print("6. Cargando e insertando Dim_Transaccion (Generando IDs Identity)...")
 dim_transaccion.to_sql('Dim_Transaccion', con=engine, if_exists='append', index=False)
 # Recuperamos la tabla desde la BD ya con los id_transaccion asignados
 dim_transaccion_db = pd.read_sql("SELECT * FROM Dim_Transaccion", con=engine)
 
-print("\n6. Construyendo la tabla de hechos Fact_Vuelos...")
+print("\n7. Construyendo la tabla de hechos Fact_Vuelos...")
 # Merge para obtener id_detalle relacionando por sus atributos
+# CRUCE (MERGE): Cruza los vuelos crudos originales con el catálogo descargado.
+# Esto sirve para reemplazar los textos largos por el 'id_detalle' numérico generado en SQL Server.
 fact_vuelos = df_crudo.merge(
     dim_detalle_db,
     left_on=['flight_number', 'aircraft_type', 'cabin_class', 'seat', 'status'],
@@ -184,7 +207,7 @@ fact_final = fact_final.rename(columns={
     'bags_checked': 'equipaje_documentado'
 })
 
-print("7. Cargando tabla de hechos (Fact_Vuelos)...")
+print("8. Cargando tabla de hechos (Fact_Vuelos)...")
 fact_final.to_sql('Fact_Vuelos', con=engine, if_exists='append', index=False)
 
 print("\n Proceso ETL Finalizado exitosamente. ¡Datos en SQL Server listos para análisis!")
