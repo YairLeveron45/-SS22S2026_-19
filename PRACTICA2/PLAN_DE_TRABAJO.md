@@ -40,7 +40,7 @@ Este documento es una guía paso a paso para completar la Práctica 2, asegurand
 
 ## Fase 4: Documentación e Informe Técnico (15 pts)
 
-- [ ] **Redactar README.md / Informe PDF:**
+- [X] **Redactar README.md / Informe PDF:**
   - **Introducción:** Breve descripción del dashboard.
   - **Diseño del Modelo:** Explicar las tablas importadas y cómo están relacionadas (Esquema).
   - **Medidas DAX:** Listar las 3 medidas DAX creadas y explicar qué calculan.
