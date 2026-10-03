@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------
+  # 1. Base de datos: Data Warehouse (Para cargar y transformar datos)
+  # ---------------------------------------------------------
+  postgres-dw:
+    image: postgres:15
+    container_name: sgfood-dw
+    environment:
+      POSTGRES_USER: sgfood_user
+      POSTGRES_PASSWORD: sgfood_password
+      POSTGRES_DB: dw_sgfood
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dw_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d # Si pones scripts .sql en ./sql, se ejecutan solos al iniciar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sgfood_user -d dw_sgfood"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------
+  # 2. Base de datos: Metadata de Airflow
+  # ---------------------------------------------------------
+  postgres-airflow:
+    image: postgres:13
+    container_name: sgfood-airflow-db
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_airflow_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------
+  # 3. Inicializador de Airflow (Crea el usuario admin)
+  # ---------------------------------------------------------
+  airflow-init:
+    build: .
+    # image: apache/airflow:2.7.2-python3.10
+    container_name: sgfood-airflow-init
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
+      - _AIRFLOW_DB_UPGRADE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
+    command: version
+
+  # ---------------------------------------------------------
+  # 4. Airflow Webserver (Interfaz Gráfica)
+  # ---------------------------------------------------------
+  airflow-webserver:
+    build: .
+    # image: apache/airflow:2.7.2-python3.10
+    container_name: sgfood-airflow-web
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./dbt_sgfood:/opt/airflow/dbt_sgfood
+    ports:
+      - "8081:8080"
+    command: webserver
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ---------------------------------------------------------
+  # 5. Airflow Scheduler (El que ejecuta las tareas)
+  # ---------------------------------------------------------
+  airflow-scheduler:
+    image: apache/airflow:2.7.2-python3.10
+    container_name: sgfood-airflow-scheduler
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./dbt_sgfood:/opt/airflow/dbt_sgfood
+    command: scheduler
+
+volumes:
+  postgres_dw_data:
+  postgres_airflow_data:

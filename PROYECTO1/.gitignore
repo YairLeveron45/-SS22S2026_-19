@@ -1,0 +1,38 @@
+# Entornos y binarios de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# Logs y bases de datos locales de Airflow (en caso de correr por fuera de Docker)
+logs/
+*.log
+airflow-webserver.pid
+airflow-webserver-monitor.pid
+airflow-scheduler.pid
+airflow-worker.pid
+airflow.db
+
+# dbt Core
+target/
+dbt_packages/
+dbt_modules/
+
+# Sistema Operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ignorar archivos de datos pesados (CSVs) para no subirlos accidentalmente a GitHub
+*.csv
+*.xlsx
+*.parquet
+*.json
