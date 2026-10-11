@@ -7,6 +7,10 @@ __pycache__/
 env/
 venv/
 .env
+.env.*
+!.env.example
+exports/
+validation_local/
 
 # Logs y bases de datos locales de Airflow (en caso de correr por fuera de Docker)
 logs/

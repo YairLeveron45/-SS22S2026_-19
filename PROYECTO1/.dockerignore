@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+data/
+logs/
+exports/
+dbt_sgfood/target/
+__pycache__/

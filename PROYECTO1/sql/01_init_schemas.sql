@@ -10,5 +10,6 @@ CREATE SCHEMA IF NOT EXISTS staging;
 -- 3. Esquema MARTS (Capa Oro): Modelos dimensionales / Esquema estrella (Gestionado por dbt)
 CREATE SCHEMA IF NOT EXISTS marts;
 
--- (Opcional) Más adelante agregaremos los CREATE TABLE para el esquema raw
--- una vez que conozcamos el formato exacto de los datos fuente.
+-- Python crea las tablas raw con los tipos de la fuente transaccional.
+-- dbt materializa staging y marts; 02_modelo_dimensional.sql aplica PK/FK
+-- después de dbt run y de las pruebas de calidad.

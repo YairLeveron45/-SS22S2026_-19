@@ -1,0 +1,113 @@
+version: 2
+models:
+  - name: stg_sucursal
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_sucursal
+        tests: [unique, not_null]
+  - name: stg_categoria
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_categoria
+        tests: [unique, not_null]
+  - name: stg_marca
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_marca
+        tests: [unique, not_null]
+  - name: stg_producto
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_producto
+        tests: [unique, not_null]
+  - name: stg_cliente
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_cliente
+        tests: [unique, not_null]
+  - name: stg_venta
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_venta
+        tests: [unique, not_null]
+  - name: stg_venta_detalle
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_detalle
+        tests: [unique, not_null]
+      - name: id_venta
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_venta')
+              field: id_venta
+      - name: id_producto
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_producto')
+              field: id_producto
+  - name: stg_catalogo_csv
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_producto
+        tests: [unique, not_null]
+  - name: int_productos
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_producto
+        tests: [unique, not_null]
+  - name: int_ventas
+    description: "Limpieza e integración del snapshot raw."
+    columns:
+      - name: id_detalle
+        tests: [unique, not_null]
+  - name: dim_producto
+    description: "Dimensión tipo 1; refleja el snapshot actual de la fuente."
+    columns:
+      - name: id_producto
+        tests: [unique, not_null]
+  - name: dim_cliente
+    description: "Dimensión tipo 1; refleja el snapshot actual de la fuente."
+    columns:
+      - name: id_cliente
+        tests: [unique, not_null]
+  - name: dim_sucursal
+    description: "Dimensión tipo 1; refleja el snapshot actual de la fuente."
+    columns:
+      - name: id_sucursal
+        tests: [unique, not_null]
+  - name: dim_tiempo
+    description: "Dimensión tipo 1; refleja el snapshot actual de la fuente."
+    columns:
+      - name: id_tiempo
+        tests: [unique, not_null]
+  - name: fact_ventas
+    description: "Una fila por detalle de venta; incluye todos los estados. Costos y márgenes estimados al costo del catálogo."
+    columns:
+      - name: id_detalle
+        tests: [unique, not_null]
+      - name: id_producto
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_producto')
+              field: id_producto
+      - name: id_cliente
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_cliente')
+              field: id_cliente
+      - name: id_sucursal
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sucursal')
+              field: id_sucursal
+      - name: id_tiempo
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_tiempo')
+              field: id_tiempo

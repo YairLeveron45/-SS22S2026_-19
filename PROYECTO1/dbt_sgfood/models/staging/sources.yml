@@ -1,0 +1,14 @@
+version: 2
+sources:
+  - name: sgfood
+    schema: raw
+    description: "Snapshot de la fuente transaccional provista y catálogo CSV derivado."
+    tables:
+      - name: sucursal
+      - name: categoria
+      - name: marca
+      - name: producto
+      - name: cliente
+      - name: venta
+      - name: venta_detalle
+      - name: catalogo_csv

@@ -3,11 +3,10 @@ sgfood_profile:
   outputs:
     dev:
       type: postgres
-      threads: 1
-      # Conexión al Data Warehouse interno de Docker
-      host: postgres-dw 
+      host: "{{ env_var('DW_HOST') }}"
       port: 5432
-      user: sgfood_user
-      pass: sgfood_password
-      dbname: dw_sgfood
-      schema: marts # Esquema donde se guardarán los resultados analíticos
+      user: "{{ env_var('DW_USER') }}"
+      password: "{{ env_var('DW_PASSWORD') }}"
+      dbname: "{{ env_var('DW_DB') }}"
+      schema: marts
+      threads: 2
