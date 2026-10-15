@@ -7,6 +7,13 @@ Integrantes:
 - **Estiben Yair Lopez Leveron** — 202204578.
 - **Johan Moises Cardona Rosales** — 202201405.
 
+## Documentación
+
+- [Documentación técnica](Documentacion/DOCUMENTACION_TECNICA.md): arquitectura, DAG de Airflow,
+  Data Warehouse, proyecto dbt, pruebas, justificación del diseño y evidencias de ejecución.
+- [Manual de implementación](Documentacion/MANUAL_IMPLEMENTACION.md): instalación, configuración,
+  ejecución paso a paso y solución de problemas.
+
 ## Arquitectura y alcance
 
 PostgreSQL transaccional → Python → PostgreSQL raw → dbt staging/intermediate → dbt marts.
