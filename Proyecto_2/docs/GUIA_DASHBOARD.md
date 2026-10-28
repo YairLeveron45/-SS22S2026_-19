@@ -92,5 +92,5 @@ cada uno conviene agregar un cuadro de texto con el hallazgo que muestra (secci�
 ## 7. Compartir y documentar
 
 1. **Compartir → Administrar el acceso → Cualquier persona que tenga el vínculo → Lector**.
-2. Copiar el enlace en el marcador `⟨P15⟩` del README.
+2. Registrar o actualizar el enlace en el encabezado y en la sección 9 del [README](../README.md).
 3. Capturar cada página en `evidencias/` (nombres en [evidencias/README.md](../evidencias/README.md)).

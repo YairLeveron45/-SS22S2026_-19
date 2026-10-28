@@ -2,6 +2,10 @@
 
 **NYC Yellow Taxi Trips 2022 · BigQuery · BigQuery ML · Data Studio (Looker Studio)**
 
+**Para la calificación:** abrir la [guía de presentación](docs/GUIA_CALIFICACION.md).
+Relaciona cada punto de la rúbrica con qué explicar, qué script abrir y qué evidencia mostrar.
+Para consultar el estado de los respaldos, abrir el [inventario de evidencias](evidencias/README.md).
+
 | | |
 |---|---|
 | Curso | Seminario de Sistemas 2, 2S2026 |
@@ -10,7 +14,7 @@
 | Integrantes | **Estiben Yair Lopez Leveron** — 202204578<br>**Johan Moises Cardona Rosales** — 202201405 |
 | Dataset | `bigquery-public-data.new_york_taxi_trips.tlc_yellow_trips_2022` |
 | Proyecto GCP | `ss2-proyecto2-512805`, dataset `nyc_taxi_2022` (multi-región US) |
-| Informe visual | <https://datastudio.google.com/reporting/7e3040a1-201a-4595-bf1e-fa6a5c6af4a0> |
+| Informe visual | <https://datastudio.google.com/u/0/reporting/7e3040a1-201a-4595-bf1e-fa6a5c6af4a0/page/yY7BG> |
 
 ---
 
@@ -18,7 +22,7 @@
 
 1. [Resumen](#1-resumen)
 2. [Dataset](#2-dataset)
-3. [Arquitectura y flujo](#3-arquitectura-y-flujo)
+3. [Arquitectura](#3-arquitectura)
 4. [Ejecución](#4-ejecución)
 5. [Transformaciones](#5-transformaciones)
 6. [Optimización: partición y clustering](#6-optimización-partición-y-clustering)
@@ -29,10 +33,27 @@
 11. [Uso de recursos y costos](#11-uso-de-recursos-y-costos)
 12. [Limitaciones](#12-limitaciones)
 13. [Referencias](#13-referencias)
+14. [Conclusiones](#14-conclusiones)
+15. [Correspondencia con el enunciado y la rúbrica](#15-correspondencia-con-el-enunciado-y-la-rúbrica)
+16. [Estado de entrega y evidencias pendientes](#16-estado-de-entrega-y-evidencias-pendientes)
 
 ---
 
 ## 1. Resumen
+
+**Alcance de la revisión documental.** Se revisaron los scripts SQL y de BigQuery ML,
+las guías y los entregables exigidos en las secciones 3.4 y 9 del
+[enunciado](enunciado/798_Proyecto_2_2S2026.pdf). Las cifras de volumen, rendimiento, métricas,
+iteraciones y predicciones de este documento ya estaban registradas en el README del proyecto;
+se conservan como resultados reportados. La revisión inicial no ejecutó consultas ni entrenó
+modelos en GCP. El 27 de octubre se ejecutaron el control de calidad y, posteriormente, los cinco
+controles documentales con autorización del usuario. Sus resultados y consumos
+constan en las secciones 16.3 y 16.4. Posteriormente se abrió el informe compartido sin iniciar sesión y se capturaron
+sus cuatro páginas. También se incorporaron capturas de la consola de BigQuery obtenidas
+el 27 de octubre de 2026 y los controles documentales exportados en 16.4. El
+[inventario conciliado](evidencias/README.md) distingue los puntos cubiertos por capturas
+combinadas de los resultados específicos que aún no tienen respaldo adjunto. El estado de entrega se detalla en la
+[sección 16](#16-estado-de-entrega-y-evidencias-pendientes).
 
 El proyecto trabaja con los viajes de taxi amarillo de Nueva York publicados en BigQuery para
 2022. En cinco pasos:
@@ -147,26 +168,17 @@ cada proveedor con las mismas horas de las semanas vecinas:
 La caída del **29 de enero**, de 06:00 a 15:00, sí es real: ese día hubo una ventisca de nieve en
 Nueva York. Se conserva como dato válido.
 
-## 3. Arquitectura y flujo
+## 3. Arquitectura
 
-```mermaid
-flowchart LR
-  A[("Tabla pública<br/>tlc_yellow_trips_2022")] -->|"limpieza y tipos"| B[("viajes<br/>partición mensual + clustering")]
-  Z[("taxi_zone_geom")] --> ZN[("zonas")]
-  B --> E[("viajes_estandar<br/>sin optimizar")]
-  B --> V[["vw_viajes"]]
-  ZN --> V
-  V --> D[("dash_*")]
-  V --> MA[("ml_demanda_horaria")]
-  V --> MB[("ml_propinas")]
-  MA --> RA["5 modelos de regresión"]
-  MB --> RB["4 modelos de clasificación"]
-  RA --> PA[("ml_pronostico_demanda")]
-  RB --> PB[("ml_pred_propina<br/>ml_matriz_confusion")]
-  D --> L["Data Studio"]
-  PA --> L
-  PB --> L
-```
+### 3.1 Arquitectura
+
+Componentes del proyecto y su organización en BigQuery, BigQuery ML, el repositorio y el informe visual.
+
+![Arquitectura del proyecto](docs/imagenes/arquitectura.png)
+
+[Ver arquitectura en SVG](docs/imagenes/arquitectura.svg).
+
+### 3.2 Objetos del proyecto
 
 | Objeto | Tipo | Script | Propósito |
 |---|---|---|---|
@@ -223,7 +235,7 @@ entrenamiento, leer la [sección 11](#11-uso-de-recursos-y-costos).
 | Clustering por ubicación | `CLUSTER BY pickup_location_id, dropoff_location_id` | Dentro de cada mes, los viajes quedan ordenados por zona de origen y luego de destino. Así, un filtro por zona lee solo los bloques de esa zona. El origen va primero porque es el filtro más frecuente. |
 | Filtro de partición obligatorio | `require_partition_filter = TRUE` | Una consulta sin filtro de fecha falla en lugar de recorrer la tabla completa. |
 | Tipos compactos | `FLOAT64` e `INT64` en lugar de `NUMERIC` y `STRING` | Menos bytes por columna leída. |
-| Selección de columnas | Ninguna consulta usa `SELECT *` | BigQuery cobra por columna leída; `LIMIT` no reduce los bytes. |
+| Selección de columnas | La comparación y las consultas exploratorias seleccionan las columnas necesarias; S0 muestra `SELECT *` como contraste y hay usos de `*` en vistas, CTE y llamadas de ML | Evitar columnas innecesarias reduce la lectura; `LIMIT` no garantiza reducir los bytes. |
 | Agregados para el informe | Tablas `dash_*` y `ml_*` | El informe lee tablas pequeñas en lugar de recorrer `viajes` en cada interacción. |
 
 ### 6.2 Metodología de comparación
@@ -266,9 +278,11 @@ Cómo leer estos resultados:
 - **Clustering (S2):** el validador estimaba el mismo máximo para ambas tablas (863 MB), porque no
   puede anticipar qué bloques descartará el clustering. Al ejecutar, la tabla optimizada procesó
   146 MB. La evidencia del clustering está en los bytes procesados reales.
-- **Tipos (S3):** con los mismos viajes, la tabla pública lee un 51.5 % más que la estándar porque
-  usa `NUMERIC` (16 bytes) y `TIMESTAMP`. Con partición, clustering y tipos compactos, la consulta
-  pasa de 1.7 GB a 12 MB.
+- **Origen frente a tabla derivada (S3):** la tabla pública lee un 51.5 % más que la estándar.
+  Esta comparación combina diferencias de tipos, columnas y registros eliminados por la limpieza;
+  no permite atribuir toda la diferencia a una sola causa. Con la tabla optimizada, la consulta
+  pasa de 1.7 GB a 12 MB. Para aislar partición y clustering se comparan `viajes_estandar` y
+  `viajes`, que contienen los mismos viajes y tipos en las columnas consultadas.
 - **`SELECT *` (S0):** `SELECT * ... LIMIT 10` sobre la tabla pública procesaría 6.97 GB; con solo
   tres columnas, 996.84 MB. Ambas devuelven 10 filas, porque `LIMIT` no reduce la lectura.
 - **Duraciones:** son de menos de un segundo y varían entre ejecuciones. Los bytes procesados y el
@@ -470,8 +484,9 @@ mismas filas. Noviembre queda como prueba temporal.
 
 Por qué estas métricas:
 
-- **ROC-AUC** mide qué tan bien ordena el modelo los viajes por riesgo, sin depender del umbral ni
-  del desbalance. Es el criterio de selección.
+- **ROC-AUC** mide qué tan bien ordena el modelo los viajes por riesgo a través de distintos
+  umbrales. Es el criterio de selección, pero con clases desbalanceadas debe interpretarse junto
+  con precisión, recall y F1 de la clase minoritaria.
 - **Precisión y recall** de la clase "sin propina" dicen cuántas alertas aciertan y cuántos casos
   reales se detectan.
 - **Accuracy** no sirve aquí: un modelo que nunca predice "sin propina" ya acierta el 96.5 %.
@@ -634,7 +649,7 @@ análisis exploratorio.
 
 ## 9. Informe visual
 
-Enlace: <https://datastudio.google.com/reporting/7e3040a1-201a-4595-bf1e-fa6a5c6af4a0>
+Enlace: <https://datastudio.google.com/u/0/reporting/7e3040a1-201a-4595-bf1e-fa6a5c6af4a0/page/yY7BG>
 
 | Página | Contenido |
 |---|---|
@@ -644,7 +659,34 @@ Enlace: <https://datastudio.google.com/reporting/7e3040a1-201a-4595-bf1e-fa6a5c6
 | Propinas | Métricas por modelo, curva ROC, matriz de confusión, importancia de variables y tasa real frente a probabilidad pronosticada por día |
 
 La construcción paso a paso está en [docs/GUIA_DASHBOARD.md](docs/GUIA_DASHBOARD.md). Las capturas
-de cada página están en `evidencias/`.
+de sus cuatro páginas se incluyen a continuación. Se obtuvieron del informe compartido el
+26 de octubre de 2026, sin iniciar sesión ni lanzar scripts de entrenamiento o consultas
+manualmente. Las gráficas muestran los resultados cargados por el propio informe.
+
+### 9.1 Exploración
+
+Indicadores, serie temporal, mapa de calor, zonas, pagos y flujos entre boroughs.
+
+![Dashboard de exploración](evidencias/39_dashboard_exploracion.png)
+
+### 9.2 Optimización
+
+Comparación de procesamiento y métricas de las consultas por escenario.
+
+![Dashboard de optimización](evidencias/40_dashboard_optimizacion.png)
+
+### 9.3 Pronóstico de demanda
+
+Comparación de datos reales, baseline y predicciones de varios modelos en noviembre,
+con métricas y error diario.
+
+![Dashboard de pronóstico de demanda](evidencias/41_dashboard_pronostico.png)
+
+### 9.4 Clasificación de propinas
+
+Evaluación de modelos, curva ROC, matriz de confusión e importancia de variables.
+
+![Dashboard de clasificación de propinas](evidencias/42_dashboard_propinas.png)
 
 ## 10. Estructura del repositorio
 
@@ -667,6 +709,7 @@ Proyecto_2/
 │   └── 05_predicciones.sql            pronóstico rodante, predicciones y viajes hipotéticos
 ├── docs/
 │   ├── GUIA_EJECUCION.md              orden de ejecución, configuración y solución de problemas
+│   ├── GUIA_CALIFICACION.md           recorrido por la rúbrica, preguntas y evidencias
 │   └── GUIA_DASHBOARD.md              construcción del informe en Data Studio
 └── evidencias/
     └── README.md                      lista de capturas y criterio de la rúbrica de cada una
@@ -678,7 +721,7 @@ Bytes facturados por todo el proyecto, según `INFORMATION_SCHEMA.JOBS_BY_USER`:
 
 | Tipo | Trabajos | Facturado |
 |---|---|---|
-| Consultas y creación de tablas | ~100 | ~65 GB, dentro del terabyte gratuito mensual |
+| Consultas y creación de tablas | ~100 | ~65 GB reportados en el README original; no implica cobertura por cuota gratuita |
 | Entrenamiento de modelos lineales y logísticos | 6 | 0.3 GB |
 | Entrenamiento de modelos boosted tree | 3 | **105.8 GB** (46.8 + 46.4 + 12.6) |
 
@@ -695,6 +738,12 @@ entrenamiento, no el tamaño de la tabla. El de demanda entrenó con una tabla d
 46.4 GB, y la estimación previa del validador (~3 MB) no lo anticipa. Antes de reentrenar estos
 modelos en una cuenta con facturación, conviene revisar la tarifa de BigQuery ML y configurar un
 presupuesto con alertas.
+
+Los totales anteriores provienen del reporte original y no constituyen una conciliación de
+la factura de GCP. El usuario indicó que no dispone de cuota gratuita. Las ejecuciones
+posteriores autorizadas para documentación se registran por separado en 16.3 y 16.4; no se
+asume que estén incluidas en esos totales. El importe monetario definitivo se consulta en
+Facturación de Google Cloud.
 
 ## 12. Limitaciones
 
@@ -727,3 +776,287 @@ presupuesto con alertas.
 - Google Cloud. *The ML.EVALUATE function.* <https://cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-evaluate>
 - Google Cloud. *JOBS view (INFORMATION_SCHEMA).* <https://cloud.google.com/bigquery/docs/information-schema-jobs>
 - NYC Taxi & Limousine Commission. *Data Dictionary – Yellow Taxi Trip Records.* <https://www.nyc.gov/assets/tlc/downloads/pdf/data_dictionary_trip_records_yellow.pdf>
+
+## 14. Conclusiones
+
+1. **La calidad del origen condiciona el análisis.** Los resultados reportados conservan
+   35,332,160 viajes después de la limpieza. La ausencia de diciembre y los huecos de captura
+   obligan a delimitar el período y distinguir una caída de demanda de registros faltantes.
+2. **La organización física reduce la lectura.** La comparación reporta reducciones del 90.2 %
+   con filtro mensual, 83.1 % con filtro por zona y 98.9 % al combinar ambos. La duración no
+   mejora en todos los escenarios: en S2 sube de 347 a 496 ms. El beneficio demostrado por las
+   cifras registradas se concentra en los bytes procesados y el tiempo de slot.
+3. **Los patrones temporales y geográficos orientan la planificación.** Los hallazgos reportados
+   muestran concentración en Manhattan, diferencias entre horarios laborales y fines de semana,
+   y una participación de los aeropuertos en ingresos mayor que en cantidad de viajes. Estas
+   asociaciones describen el dataset y no demuestran relaciones causales.
+4. **El modelo de demanda se selecciona con validación.** `reg_demanda_boosted_v2` tiene el menor
+   RMSE de validación registrado y reduce aproximadamente 37.5 % el RMSE de noviembre frente al
+   baseline. Thanksgiving sigue siendo una limitación relevante; los datos estimados de la
+   semana incompleta no se usan como objetivos de evaluación.
+5. **La clasificación de propinas tiene utilidad limitada.** La logística v2 alcanza un ROC-AUC
+   reportado de aproximadamente 0.688, pero su baja precisión exige cautela al interpretar
+   alertas. Las salidas de los modelos con pesos de clase requieren calibración antes de
+   tratarlas como probabilidades para estimar ingresos.
+6. **La reproducibilidad necesita evidencias.** Los scripts y las guías permiten identificar
+   cómo se obtiene cada resultado. Para cerrar la entrega deben adjuntarse las capturas
+   solicitadas y respaldarse las cifras con resultados de BigQuery y del informe visual.
+
+## 15. Correspondencia con el enunciado y la rúbrica
+
+La siguiente matriz ubica cada requisito en la documentación y en su implementación. Una
+referencia a un script acredita su presencia local; la ejecución y sus resultados requieren
+las evidencias indicadas en la sección 16.
+
+| Requisito | Documentación | Implementación o entregable |
+|---|---|---|
+| Nombre del proyecto y ambos integrantes | Encabezado | Este README |
+| Dataset público, estructura, calidad y mínimo de 1 millón de registros (1.1) | Secciones 2 y 5 | [Exploración y calidad](sql/01_exploracion_calidad.sql), [transformaciones](sql/02_transformacion_tablas.sql) |
+| Consultas SQL avanzadas y transformaciones comentadas (1.2) | Secciones 5 y 7 | [Análisis E1–E20](sql/03_analisis_exploratorio.sql) y scripts de `sql/` |
+| Tablas derivadas, particiones y clustering (1.3) | Secciones 3 y 6.1 | [Creación de tablas y vista](sql/02_transformacion_tablas.sql) |
+| Comparación estándar frente a optimizada y reducción de bytes (1.3 y 2.5) | Secciones 6.2 y 6.3 | [Escenarios S1–S3 y métricas R1–R2](sql/04_comparacion_rendimiento.sql) |
+| Al menos dos modelos de BigQuery ML (1.4) | Secciones 8.1 y 8.2 | [Cinco modelos de demanda](bqml/02_modelos_demanda.sql), [cuatro modelos de propina](bqml/03_modelos_propina.sql); dos modelos son controles de demostración |
+| Métricas, hiperparámetros y selección justificada (1.5) | Secciones 8.1 y 8.2 | [Evaluación y comparación](bqml/04_evaluacion_comparacion.sql) |
+| Prevención de data leakage, `data_split_eval_fraction` y split personalizado (1.6) | Sección 8.4 | [Preparación de datos](bqml/01_preparacion_datos_ml.sql), scripts de modelos y evaluación |
+| Hallazgos, patrones y tendencias (2.1) | Secciones 7 y 14 | [Consultas exploratorias](sql/03_analisis_exploratorio.sql) |
+| Al menos tres visualizaciones exploratorias y resultados predictivos (2.2) | Secciones 9 y 8.5 | [Guía del dashboard](docs/GUIA_DASHBOARD.md), [tablas agregadas](sql/05_tablas_dashboard.sql) y enlace al informe |
+| Ingeniería de características y justificación de variables (2.3) | Secciones 5.2 y 8.3 | Preparación de datos ML y cláusulas `TRANSFORM` de los modelos de propina |
+| Variables de entrada, salida y objetivo (2.4) | Tablas de las secciones 8.1 y 8.2 | Consultas de entrenamiento e `input_label_cols` |
+| Predicciones sobre nuevos registros y comparación de al menos dos modelos en rolling forecast | Sección 8.5 | [Predicciones](bqml/05_predicciones.sql): `ml_pronostico_demanda`, `ml_pred_propina` y escenarios hipotéticos |
+| Capturas de consultas, conteos, optimización e informe | Sección 16 | [Inventario de evidencias](evidencias/README.md) |
+| Repositorio organizado en `Proyecto_2` | Secciones 4 y 10 | [Guía de ejecución](docs/GUIA_EJECUCION.md), carpetas `sql/`, `bqml/`, `docs/` y `evidencias/` |
+
+## 16. Estado de entrega y evidencias pendientes
+
+| Elemento | Estado en la revisión local | Acción para completar la entrega |
+|---|---|---|
+| README técnico e integrantes | Presente | Mantener sincronizado con los resultados definitivos |
+| Scripts SQL y BigQuery ML | Presentes: 6 de SQL y 6 de ML (incluido el control documental) | Conservar los comentarios y el orden de ejecución documentado |
+| Guías de ejecución y dashboard | Presentes | Seguirlas para reproducir consultas y construir las visualizaciones |
+| Cifras, métricas e iteraciones | Reportadas en el README previo; hay capturas de los resultados visibles en el dashboard | Adjuntar resultados directos de BigQuery que permitan contrastar los demás valores de las secciones 2, 6, 7, 8 y 11 |
+| Capturas de BigQuery | Esquema, detalles, calidad, rendimiento, modelos, predicciones y controles incorporados | Consultar los resultados específicos sin respaldo en el inventario conciliado; los antiguos nombres 01–42 no son una lista obligatoria del enunciado |
+| Informe visual | Abierto sin iniciar sesión; se observaron más de 3 visualizaciones exploratorias y comparación de varios modelos de demanda | Conservar acceso de lectura para la evaluación |
+| Capturas del dashboard | Incorporadas: archivos 39 a 42, visibles en la sección 9 | Actualizarlas si cambia el informe |
+| Tablas de resultados y predicciones | Capturas de vistas previas incorporadas | Completar escenarios hipotéticos y exportaciones si se requieren |
+
+Para conservar la trazabilidad de la comparación, el respaldo debe incluir `job_id`, fecha de
+ejecución, bytes procesados, bytes facturados, duración y estado de caché. La tabla
+`comparacion_consultas` ya guarda los identificadores y las métricas; R1 filtra trabajos exitosos
+sin caché. Para los modelos, adjuntar la evaluación, la configuración y las iteraciones, además
+de las predicciones. Las capturas deben mostrar datos legibles y corresponder a los valores
+publicados en este README.
+
+La relación entre requisitos y archivos existentes se encuentra en
+[evidencias/README.md](evidencias/README.md). El inventario identifica las capturas combinadas
+que cubren varios puntos y separa los resultados numéricos o diagnósticos aún sin respaldo
+adjunto. No se exige un archivo independiente por cada número de la propuesta inicial.
+
+### 16.1 Capturas de la consola de BigQuery
+
+Obtenidas el 27 de octubre de 2026 desde la sesión de Brave autorizada. Se consultaron
+metadatos, evaluaciones existentes y vistas previas de tablas; no se ejecutaron consultas SQL
+ni entrenamientos. Las vistas previas muestran filas almacenadas, no reemplazan los controles
+agregados de calidad o de separación de datos. Las evaluaciones del modelo corresponden a su
+conjunto de evaluación; las tablas de métricas distinguen evaluación y prueba.
+
+<details>
+<summary>Dataset y optimización</summary>
+
+**Detalles de la tabla pública**
+
+![Detalles de la tabla pública](evidencias/01b_detalles_tabla_publica.png)
+
+**Esquema de origen**
+
+![Esquema de origen](evidencias/03_esquema.png)
+
+**Esquema de viajes limpios**
+
+![Esquema de viajes limpios](evidencias/03b_esquema_viajes.png)
+
+**Particiones, clustering y cantidad de filas**
+
+![Particiones, clustering y cantidad de filas](evidencias/06_tabla_viajes_detalles.png)
+
+**Métricas almacenadas de comparación**
+
+![Métricas almacenadas de comparación](evidencias/23_resumen_comparacion.png)
+
+</details>
+
+<details>
+<summary>Modelos y evaluación</summary>
+
+**Entrenamiento de regresión lineal**
+
+![Entrenamiento de regresión lineal](evidencias/28_modelo_lineal_entrenamiento.png)
+
+**Hiperparámetros y split personalizado**
+
+![Hiperparámetros y split personalizado](evidencias/29b_modelo_boosted_configuracion.png)
+
+**Entrenamiento boosted de demanda**
+
+![Entrenamiento boosted de demanda](evidencias/29c_modelo_boosted_entrenamiento.png)
+
+**Evaluación boosted de demanda**
+
+![Evaluación boosted de demanda](evidencias/29_modelo_boosted_evaluacion.png)
+
+**Configuración del clasificador**
+
+![Configuración del clasificador](evidencias/30b_modelo_clf_configuracion.png)
+
+**Evaluación del clasificador**
+
+![Evaluación del clasificador](evidencias/30_modelo_clf_evaluacion.png)
+
+**Comparación de regresión**
+
+![Comparación de regresión](evidencias/31_comparacion_regresion.png)
+
+**Comparación de clasificación**
+
+![Comparación de clasificación](evidencias/33_comparacion_clasificacion.png)
+
+</details>
+
+<details>
+<summary>Predicciones almacenadas</summary>
+
+**Predicciones de demanda**
+
+![Predicciones de demanda](evidencias/37b_predicciones_demanda.png)
+
+**Predicciones de propinas**
+
+![Predicciones de propinas](evidencias/38b_predicciones_propina.png)
+
+</details>
+
+### 16.2 Trabajos anteriores de optimización
+
+Se recuperaron del historial los siete trabajos de S1 a S3, sin volver a ejecutar SQL.
+Las capturas muestran el SQL y las estadísticas del trabajo original. Las tablas temporales
+de resultados figuran como vencidas; estas capturas acreditan el procesamiento registrado,
+no una nueva ejecución ni la disponibilidad actual de sus resultados.
+
+<details>
+<summary>Ver trabajos de partición, clustering y optimización combinada</summary>
+
+**S1: tabla estándar**
+
+![S1: tabla estándar](evidencias/16_s1_estandar.png)
+
+**S1: tabla optimizada**
+
+![S1: tabla optimizada](evidencias/17_s1_optimizada.png)
+
+**S2: tabla estándar**
+
+![S2: tabla estándar](evidencias/18_s2_estandar.png)
+
+**S2: tabla optimizada**
+
+![S2: tabla optimizada](evidencias/19_s2_optimizada.png)
+
+**S3: tabla pública**
+
+![S3: tabla pública](evidencias/20_s3_publica.png)
+
+**S3: tabla estándar**
+
+![S3: tabla estándar](evidencias/21_s3_estandar.png)
+
+**S3: tabla optimizada**
+
+![S3: tabla optimizada](evidencias/22_s3_optimizada.png)
+
+</details>
+
+### 16.3 Control de calidad ejecutado con autorización
+
+El 27 de octubre de 2026 a las 21:27 (Guatemala) se ejecutó únicamente el bloque 5
+de `sql/01_exploracion_calidad.sql`, previa autorización del usuario. Los 13 conteos
+obtenidos coinciden con las reglas de calidad reportadas en la sección 2.4.
+No se reentrenaron modelos ni se ejecutaron los archivos completos.
+
+La información del trabajo indica **3.13 GB procesados**, **3.13 GB facturados**
+y una duración de **1,984 ms**. Los bytes facturados son la métrica de consumo
+de BigQuery; no acreditan por sí solos un cargo monetario, que depende de la
+cuota gratuita y de la facturación de la cuenta.
+
+**Resultados de calidad**
+
+![Control de calidad: consulta y resultados](evidencias/04_calidad_datos.png)
+
+**Información del trabajo**
+
+![Consumo y duración del control de calidad](evidencias/04b_calidad_informacion_trabajo.png)
+
+### 16.4 Conteos por conjunto y controles de fuga
+
+El 27 de octubre de 2026 a las 21:33 (Guatemala) se ejecutó, con autorización del
+usuario, [bqml/06_controles_documentacion.sql](bqml/06_controles_documentacion.sql).
+Agrupa cinco controles de solo lectura sobre tablas existentes; no crea tablas ni entrena
+modelos. Devuelve 13 filas. La comparación de fuga consulta métricas ya almacenadas,
+no vuelve a evaluar ni entrenar los modelos.
+
+**Consumo observado:** 18.94 MB procesados, 40 MB facturados y 607 ms de duración.
+La diferencia entre lectura y facturación corresponde a los mínimos por tabla.
+
+**Demanda por conjunto**
+
+| Conjunto | Filas | Desde | Hasta | Sin dato | Estimadas |
+|---|---:|---|---|---:|---:|
+| descartado | 2,688 | 2022-01-01 | 2022-01-28 | 0 | 0 |
+| entrenamiento | 20,640 | 2022-01-29 | 2022-08-31 | 0 | 0 |
+| prueba | 2,880 | 2022-11-01 | 2022-11-30 | 0 | 672 |
+| validacion | 5,856 | 2022-09-01 | 2022-10-31 | 132 | 0 |
+
+**Rezagos:** 31,968 filas comparadas y **0 rezagos incorrectos** para el control de 24 horas.
+Este control verifica la alineación del rezago; por sí solo no demuestra ausencia de toda
+fuga de información. Se complementa con las decisiones descritas en la sección 8.4.
+
+**Propinas por conjunto**
+
+| Conjunto | Viajes | Sin propina | Porcentaje sin propina |
+|---|---:|---:|---:|
+| entrenamiento | 734,235 | 26,387 | 3.59 % |
+| prueba | 72,459 | 2,511 | 3.47 % |
+
+El conjunto denominado `entrenamiento` de propinas contiene enero-octubre; BigQuery ML
+separa internamente un 20 % para evaluación. Estas cifras no son un conteo separado del
+split interno. Noviembre permanece como prueba temporal.
+
+**Comparaciones de fuga:** se confirmaron los valores reportados en 8.4: el modelo lineal
+con split aleatorio tiene RMSE 277.11 en evaluación y 336.54 en noviembre; el temporal,
+286.25 y 343.37. El clasificador de demostración con variable de fuga registra AUC
+0.8372 en evaluación, frente a 0.6881 de la logística v2 válida. La brecha entre
+evaluación y prueba también puede reflejar cambios temporales: no prueba por sí sola
+fuga de datos. El modelo con fuga no se selecciona como modelo válido.
+
+Resultados completos: [TSV copiado de BigQuery](evidencias/controles_documentacion.tsv) y
+[JSON estructurado a partir del TSV](evidencias/controles_documentacion.json).
+
+![Resultados de los cinco controles](evidencias/24_26_32_controles_resultados.png)
+
+![Información del trabajo de controles](evidencias/24b_controles_informacion_trabajo.png)
+
+### 16.5 Revisión final frente al enunciado
+
+Se contrastaron nuevamente las secciones 3.2, 3.4, 9.1 y 9.4 del enunciado con los archivos
+locales. Están presentes el README con ambos integrantes, los scripts comentados, evidencias
+de volumen y optimización, modelos y comparaciones, controles de separación de datos,
+predicciones y el enlace al informe visual. Las capturas del informe muestran más de tres
+visualizaciones exploratorias y la comparación de varios modelos en rolling forecast.
+No falta un apartado técnico obligatorio del README.
+
+La lista de respaldos específicos del inventario sigue vigente para cifras o diagnósticos
+que no aparecen en las evidencias adjuntas. No equivale a una exigencia de nuevas secciones,
+42 imágenes o un informe PDF separado. La revisión documental tampoco garantiza el puntaje
+de la evaluación ni sustituye la demostración de funcionamiento.
+
+Antes de entregar en GitHub, verificar que los archivos locales estén incluidos en la versión
+publicada y que el enlace del dashboard mantenga acceso de lectura. Esta revisión no publicó
+cambios ni volvió a abrir GCP para comprobar su estado actual.

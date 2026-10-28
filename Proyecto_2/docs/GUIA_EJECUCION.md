@@ -10,9 +10,10 @@ resultados de referencia de cada script están en el [README](../README.md).
   modelos `BOOSTED_TREE_*` pueden estar restringidos.
 - Permisos para crear datasets, tablas y modelos (rol Propietario o BigQuery Admin del proyecto).
 - Consumo medido:
-  - las consultas y tablas procesan ~65 GB en total y el almacenamiento queda cerca de 6 GB
-    lógicos, ambos dentro de la capa gratuita mensual (1 TB de consultas y 10 GB de
-    almacenamiento);
+  - el README original reporta ~65 GB para consultas y creación de tablas, y cerca de 6 GB
+    lógicos de almacenamiento. Estas cifras no acreditan saldo gratuito disponible ni ausencia
+    de cobros; el usuario indicó que no dispone de cuota gratuita. El costo real se revisa en
+    Facturación de GCP;
   - **los tres modelos `BOOSTED_TREE_*` facturaron ~106 GB de entrenamiento**, porque BigQuery
     cobra su cómputo y no el tamaño de la tabla. La estimación del validador no lo anticipa.
     Antes de correr `bqml/02` y `bqml/03` en una cuenta con facturación, revisar la tarifa de
@@ -43,11 +44,18 @@ proyecto activo. No hay que editar nada antes de ejecutar.
 | 9 | `bqml/03_modelos_propina.sql` | Archivo completo (~25 min; **ver costo de boosted tree**) | 4 modelos `clf_propina_*` |
 | 10 | `bqml/04_evaluacion_comparacion.sql` | Archivo completo | `ml_metricas_*`, `ml_curva_roc`, `ml_iteraciones`, `ml_importancia_variables` |
 | 11 | `bqml/05_predicciones.sql` | Archivo completo | `ml_pronostico_*`, `ml_pred_propina*`, `ml_matriz_confusion`, `ml_viajes_hipoteticos` |
-| 12 | Data Studio (antes Looker Studio) | Seguir [GUIA_DASHBOARD.md](GUIA_DASHBOARD.md) | Informe visual |
+| 12 | `bqml/06_controles_documentacion.sql` | Consulta completa, después de crear las tablas de métricas; solo lectura | 13 filas de controles de conjuntos, rezagos y comparación de fuga |
+| 13 | Data Studio (antes Looker Studio) | Seguir [GUIA_DASHBOARD.md](GUIA_DASHBOARD.md) | Informe visual |
 
 Para ejecutar un bloque: seleccionar el texto de la consulta en el editor y pulsar **Ejecutar**.
 La consola corre solo la selección. Al ejecutar un archivo completo, la consola lo trata como
 script y muestra un resultado por sentencia (**Ver resultados**).
+
+No es necesario repetir este orden para revisar la documentación entregada. Los resultados
+de `bqml/06` ya están exportados en [TSV](../evidencias/controles_documentacion.tsv) y
+[JSON](../evidencias/controles_documentacion.json). Su ejecución autorizada procesó 18.94 MB
+y registró 40 MB facturados; la consulta de calidad autorizada registró 3.13 GB. Una nueva
+ejecución puede generar otro consumo y requiere autorización del usuario.
 
 ## Evidencias
 
